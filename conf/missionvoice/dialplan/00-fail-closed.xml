@@ -1,0 +1,10 @@
+<include>
+  <!-- Static fallback used only if the controller is unreachable: every call is refused. -->
+  <context name="missionvoice">
+    <extension name="controller-unavailable">
+      <condition field="destination_number" expression="^.*$">
+        <action application="respond" data="503 Controller unavailable"/>
+      </condition>
+    </extension>
+  </context>
+</include>

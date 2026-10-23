@@ -1,0 +1,13 @@
+<configuration name="xml_curl.conf" description="cURL XML Gateway">
+  <bindings>
+    <!-- Directory (who may register, with what) and dialplan (where a call goes) are the controller's decisions. -->
+    <binding name="controller">
+      <param name="gateway-url" value="$${mvc_controller_url}" bindings="directory|dialplan"/>
+      <param name="gateway-credentials" value="freeswitch:__MVC_LOOKUP_PASSWORD__"/>
+      <param name="auth-scheme" value="basic"/>
+      <param name="timeout" value="2"/>
+      <param name="enable-cacert-check" value="false"/> <!-- loopback; mutual auth is S2 (P27 item 1) -->
+      <param name="disable-100-continue" value="true"/>
+    </binding>
+  </bindings>
+</configuration>

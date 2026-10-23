@@ -1,0 +1,17 @@
+<configuration name="switch.conf" description="Core Configuration">
+  <settings>
+    <!-- No core dumps: process memory may hold media keys (E2EE analysis, section 4). dump-cores is deliberately absent. -->
+    <param name="colorize-console" value="false"/>
+    <param name="max-sessions" value="512"/>
+    <param name="sessions-per-second" value="50"/>
+    <param name="loglevel" value="info"/>
+    <param name="rtp-start-port" value="$${mvc_rtp_start}"/>
+    <param name="rtp-end-port" value="$${mvc_rtp_end}"/>
+    <!-- Core database in PostgreSQL so the hot pair shares registrations (D95). DSN comes from the installer. -->
+    <param name="core-db-dsn" value="pgsql://hostaddr=127.0.0.1 dbname=freeswitch user=freeswitch options='-c client_min_messages=NOTICE' application_name='freeswitch'"/>
+    <param name="auto-create-schemas" value="true"/>
+    <param name="auto-clear-sql" value="true"/>
+    <!-- Keys never written on retention (F8). -->
+    <param name="rtp-retain-crypto-keys" value="false"/>
+  </settings>
+</configuration>

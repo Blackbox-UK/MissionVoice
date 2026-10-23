@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!-- Mission Voice MVC: FreeSWITCH configuration root (MV-FS-003).
+     This tree replaces conf/vanilla on an MVC. Everything here is static; users, terminals, circuits and
+     dialplan come from the controller through mod_xml_curl at run time (D48: FreeSWITCH decides nothing). -->
+<document type="freeswitch/xml">
+  <X-PRE-PROCESS cmd="include" data="vars.xml"/>
+  <section name="configuration" description="Various Configuration">
+    <X-PRE-PROCESS cmd="include" data="autoload_configs/*.xml"/>
+  </section>
+  <!-- directory and dialplan sections are served by mod_xml_curl from the controller; the static
+       fallbacks below exist only so that FreeSWITCH starts when the controller is absent, and they
+       contain nothing routable (fail closed). -->
+  <section name="dialplan" description="Regex/XML Dialplan">
+    <X-PRE-PROCESS cmd="include" data="dialplan/*.xml"/>
+  </section>
+  <section name="directory" description="User Directory">
+    <X-PRE-PROCESS cmd="include" data="directory/*.xml"/>
+  </section>
+</document>

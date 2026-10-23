@@ -1,0 +1,15 @@
+<include>
+  <!-- Mission Voice MVC variables. Addresses and names are set by the MVC installer from the
+       controller's configuration; nothing here is a secret. -->
+  <X-PRE-PROCESS cmd="set" data="mvc_sip_ip=$${local_ip_v4}"/>
+  <X-PRE-PROCESS cmd="set" data="mvc_tls_port=5061"/>
+  <X-PRE-PROCESS cmd="set" data="mvc_rtp_start=20000"/>
+  <X-PRE-PROCESS cmd="set" data="mvc_rtp_end=20999"/>
+  <!-- Algorithm profile (mvc-key-management.md section 2, D49). TLS 1.3 suites and groups are pinned in
+       the process's openssl.cnf (blackbox/openssl-missionvoice.cnf); this list only governs the TLS 1.2
+       ciphers, which are never offered because tls-version is tlsv1.3. -->
+  <X-PRE-PROCESS cmd="set" data="mvc_tls_ciphers=ECDHE-ECDSA-AES256-GCM-SHA384"/>
+  <X-PRE-PROCESS cmd="set" data="mvc_srtp_suites=AEAD_AES_256_GCM"/>
+  <X-PRE-PROCESS cmd="set" data="mvc_codec_prefs=opus@20i"/>
+  <X-PRE-PROCESS cmd="set" data="mvc_controller_url=http://127.0.0.1:8080/fs"/>
+</include>
