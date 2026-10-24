@@ -196,8 +196,9 @@ static switch_status_t load_config(void)
 	globals.cert = switch_core_sprintf(globals.pool, "%s%swss.pem", SWITCH_GLOBAL_dirs.certs_dir, SWITCH_PATH_SEPARATOR);
 	globals.key = globals.cert;
 
+	/* MV-FS-006 (Mission Voice): MSRP over WSS is not used and no certificate is ever generated. */
 	if ( switch_file_exists(globals.key, globals.pool) != SWITCH_STATUS_SUCCESS ) {
-		switch_core_gen_certs(globals.key);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "MSRP: no %s; MSRPS disabled (MV-FS-006)\n", globals.key);
 	}
 
 	if (!(xml = switch_xml_open_cfg(cf, &cfg, NULL))) {

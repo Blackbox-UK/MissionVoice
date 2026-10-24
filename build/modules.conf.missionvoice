@@ -1,28 +1,40 @@
-# Mission Voice MVC module set (MV-FS-002). Everything not listed is not built.
-# Rationale per line; see blackbox/README.md. Changes go through the decision register.
-applications/mod_commands        # fs_cli / ESL commands used by the controller
-applications/mod_dptools         # answer, bridge, set, sleep, playback: the dialplan primitives
-applications/mod_conference      # G1 interim only: gateway legs and the S1 team conference; removed when the relay lands (D97, P33)
-codecs/mod_opus                  # the one voice codec (D81 intelligibility; PTT 20 ms frames)
-databases/mod_pgsql              # core database in PostgreSQL so registrations are shared across the hot pair (D95)
-dialplans/mod_dialplan_xml       # dialplan supplied by the controller through mod_xml_curl
-endpoints/mod_sofia              # SIP over TLS 1.3, SRTP; the only endpoint module
-event_handlers/mod_event_socket  # ESL, loopback only (F7)
-formats/mod_tone_stream          # ring-back / busy tones generated locally; no audio files shipped
+## NOTE: FreeSWITCH reads this file with grep: a line with a single # is a DISABLED MODULE, only ## is a comment, and nothing may follow a module name on its line.
+## Mission Voice MVC module set (MV-FS-002). Everything not listed is not built.
+## Rationale per line; see blackbox/README.md. Changes go through the decision register.
+## fs_cli / ESL commands used by the controller
+applications/mod_commands
+## answer, bridge, set, sleep, playback: the dialplan primitives
+applications/mod_dptools
+## G1 interim only: gateway legs and the S1 team conference; removed when the relay lands (D97, P33)
+applications/mod_conference
+## the one voice codec (D81 intelligibility; PTT 20 ms frames)
+codecs/mod_opus
+## core database in PostgreSQL so registrations are shared across the hot pair (D95)
+databases/mod_pgsql
+## dialplan supplied by the controller through mod_xml_curl
+dialplans/mod_dialplan_xml
+## SIP over TLS 1.3, SRTP; the only endpoint module
+endpoints/mod_sofia
+## ESL, loopback only (F7)
+event_handlers/mod_event_socket
+## ring-back / busy tones generated locally; no audio files shipped
+formats/mod_tone_stream
 loggers/mod_console
-loggers/mod_logfile              # production level excludes SDP (F8)
-xml_int/mod_xml_curl             # directory and dialplan lookups to the controller over loopback
+## production level excludes SDP (F8)
+loggers/mod_logfile
+## directory and dialplan lookups to the controller over loopback
+xml_int/mod_xml_curl
 #
-# Deliberately absent (D46 no beacons; attack surface; not needed):
-#   applications/mod_signalwire   connects to SignalWire's cloud: forbidden
-#   applications/mod_enum         DNS lookups outward
-#   applications/mod_httapi       outbound HTTP
-#   applications/mod_voicemail, mod_fifo, mod_valet_parking, mod_sms, mod_esf, mod_fsv, mod_hash, mod_db, mod_expr, mod_test
-#   applications/mod_av, mod_spandsp   video and fax
-#   codecs/mod_g723_1, mod_g729, mod_amr, mod_b64   not in the codec profile
-#   endpoints/mod_verto, mod_skinny, mod_rtc, mod_loopback
-#   event_handlers/mod_cdr_csv, mod_cdr_sqlite; xml_int/mod_xml_cdr   the controller's audit is the record (section 4 of the E2EE analysis)
-#   xml_int/mod_xml_rpc, mod_xml_scgi   second administrative surfaces
-#   languages/mod_lua             no scripting in the core
-#   formats/mod_sndfile, mod_native_file, mod_local_stream, mod_png
-#   say/mod_say_en
+## Deliberately absent (D46 no beacons; attack surface; not needed):
+##   applications/mod_signalwire   connects to SignalWire's cloud: forbidden
+##   applications/mod_enum         DNS lookups outward
+##   applications/mod_httapi       outbound HTTP
+##   applications/mod_voicemail, mod_fifo, mod_valet_parking, mod_sms, mod_esf, mod_fsv, mod_hash, mod_db, mod_expr, mod_test
+##   applications/mod_av, mod_spandsp   video and fax
+##   codecs/mod_g723_1, mod_g729, mod_amr, mod_b64   not in the codec profile
+##   endpoints/mod_verto, mod_skinny, mod_rtc, mod_loopback
+##   event_handlers/mod_cdr_csv, mod_cdr_sqlite; xml_int/mod_xml_cdr   the controller's audit is the record (section 4 of the E2EE analysis)
+##   xml_int/mod_xml_rpc, mod_xml_scgi   second administrative surfaces
+##   languages/mod_lua             no scripting in the core
+##   formats/mod_sndfile, mod_native_file, mod_local_stream, mod_png
+##   say/mod_say_en

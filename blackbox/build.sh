@@ -30,16 +30,21 @@ cp build/modules.conf.missionvoice modules.conf
 make -j"$JOBS"
 make install
 
-# Configuration tree and OpenSSL profile
+# Configuration tree and OpenSSL profile.
+# `make install` has just laid down FreeSWITCH's vanilla conf (internal/external SIP profiles with
+# clear-text UDP/TCP listeners, voicemail, IVR menus, ...). It must not survive: the Mission Voice tree
+# REPLACES it (MV-FS-003), it does not overlay it. Found on the first build, 24 Oct 2026.
+rm -rf "$PREFIX/etc/freeswitch"
 install -d "$PREFIX/etc/freeswitch"
 cp -r conf/missionvoice/. "$PREFIX/etc/freeswitch/"
+test "$(ls "$PREFIX/etc/freeswitch/sip_profiles")" = "missionvoice.xml" || { echo "unexpected SIP profiles installed" >&2; exit 1; }
 install -m 0644 blackbox/openssl-missionvoice.cnf "$PREFIX/etc/freeswitch/openssl.cnf"
 
 # Record what was built
 {
   echo "upstream_pin=$(head -1 blackbox/UPSTREAM_PIN)"
   echo "blackbox_commit=$(git rev-parse HEAD)"
-  echo "modules=$(grep -v '^#' modules.conf | grep -v '^$' | sed 's/ *#.*//' | tr '\n' ' ')"
+  echo "modules=$(grep -vE "^#|^$" modules.conf | tr "\n" " ")"
   echo "built=$(date -u +%FT%TZ)"
   echo "freeswitch_sha256=$(sha256sum "$PREFIX/bin/freeswitch" | cut -d' ' -f1)"
 } > "$PREFIX/BUILD_RECORD"

@@ -11,7 +11,10 @@
     <param name="tls-sip-port" value="$${mvc_tls_port}"/>
     <param name="tls-version" value="tlsv1.3"/>
     <param name="tls-ciphers" value="$${mvc_tls_ciphers}"/>
-    <param name="tls-cert-dir" value="$${certs_dir}"/>  <!-- device certificate (TSS2 key, F4) and cafile.pem (issuing CA) -->
+    <!-- certs_dir is <conf>/tls unless freeswitch is started with -certs; the service unit passes
+         -certs /etc/missionvoice/tls. Files: agent.pem (device cert+key, TSS2 key in S2), cafile.pem
+         (issuing CA), dtls-srtp.pem (same device cert; EC P-384; MV-FS-006 never generates one). -->
+    <param name="tls-cert-dir" value="$${certs_dir}"/>
     <param name="tls-verify-policy" value="all"/>      <!-- mutual TLS: every terminal presents its device certificate (S2) -->
     <param name="tls-verify-depth" value="2"/>
     <param name="tls-verify-date" value="true"/>
@@ -30,18 +33,17 @@
     <param name="outbound-codec-prefs" value="$${mvc_codec_prefs}"/>
     <param name="inbound-codec-negotiation" value="greedy"/>
     <param name="rtp-timer-name" value="soft"/>
-    <param name="rtp-timeout-sec" value="20"/>
-    <param name="rtp-hold-timeout-sec" value="20"/>
+    <!-- rtp-timeout-sec / rtp-hold-timeout-sec are deprecated (warned at load): the controller sets the
+         media_timeout / media_hold_timeout channel variables on every leg instead. -->
     <param name="dtmf-type" value="none"/>
     <param name="inbound-late-negotiation" value="false"/>
     <param name="inbound-zrtp-passthru" value="false"/>
     <param name="apply-inbound-acl" value="missionvoice"/>
     <param name="apply-register-acl" value="missionvoice"/>
-    <!-- No NAT handling of any kind: every endpoint is inside the VPN network (D94). -->
+    <!-- No NAT handling of any kind: every endpoint is inside the VPN network (D94). ext-sip-ip and
+         ext-rtp-ip are deliberately absent (they are NAT parameters; sofia also rejects loopback values). -->
     <param name="aggressive-nat-detection" value="false"/>
     <param name="NDLB-force-rport" value="false"/>
-    <param name="ext-sip-ip" value="$${mvc_sip_ip}"/>
-    <param name="ext-rtp-ip" value="$${mvc_sip_ip}"/>
     <param name="enable-100rel" value="true"/>
     <param name="enable-timer" value="true"/>
     <param name="session-timeout" value="120"/>

@@ -6251,7 +6251,8 @@ switch_status_t config_sofia(sofia_config_t reload, char *profile_name)
 						if ( !key || !cert) {
 							key  = switch_core_sprintf(profile->pool, "%s/%s", profile->tls_cert_dir, "wss.pem");
 							if ( switch_file_exists(key, profile->pool) != SWITCH_STATUS_SUCCESS ) {
-								switch_core_gen_certs(key);
+								/* MV-FS-006: no generated certificates, ever. */
+								switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CRIT, "Profile %s: no %s; WSS will not start (MV-FS-006)\n", profile->name, key);
 							}
 						}
 					}
@@ -6263,7 +6264,8 @@ switch_status_t config_sofia(sofia_config_t reload, char *profile_name)
 						if ( !key || !ca ) {
 							key  = switch_core_sprintf(profile->pool, "%s/%s", profile->tls_cert_dir, "tls.pem");
 							if ( switch_file_exists(key, profile->pool) != SWITCH_STATUS_SUCCESS ) {
-								switch_core_gen_certs(key);
+								/* MV-FS-006: no generated certificates, ever. agent.pem + cafile.pem are required. */
+								switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CRIT, "Profile %s: agent.pem/cafile.pem missing in %s; TLS will not start (MV-FS-006)\n", profile->name, profile->tls_cert_dir);
 							}
 						}
 					}

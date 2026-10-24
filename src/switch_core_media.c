@@ -9711,6 +9711,13 @@ static const char *get_media_profile_name(switch_core_session_t *session, int se
 		}
 	}
 
+	/* MV-FS-007 (Mission Voice): a non-AVPF offer that carries a DTLS fingerprint (rtp_use_dtls on an
+	   outbound leg) must be labelled UDP/TLS/RTP/SAVP (RFC 5764 section 8); upstream labelled it
+	   RTP/AVP, which a conforming SIP endpoint (Baresip) rejects as "no DTLS under AVP". */
+	if (switch_channel_test_flag(session->channel, CF_DTLS)) {
+		return "UDP/TLS/RTP/SAVP";
+	}
+
 	if (secure) {
 		switch (avp) {
 			case AVP_NO_SECURE:
@@ -14212,8 +14219,12 @@ SWITCH_DECLARE (void) switch_core_media_recover_session(switch_core_session_t *s
 
 SWITCH_DECLARE(void) switch_core_media_init(void)
 {
+	/* MV-FS-006 (Mission Voice): never generate a self-signed DTLS certificate. Without an installed
+	   device certificate DTLS-SRTP cannot be offered and every secure call fails closed. */
 	if (switch_core_check_dtls_pem(DTLS_SRTP_FNAME ".pem") != SWITCH_TRUE) {
-		switch_core_gen_certs(DTLS_SRTP_FNAME ".pem");
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CRIT,
+						  "No usable %s.pem in %s: DTLS-SRTP is unavailable until a device certificate is installed (MV-FS-006)\n",
+						  DTLS_SRTP_FNAME, SWITCH_GLOBAL_dirs.certs_dir);
 	}
 
 	video_globals.cpu_count = switch_core_cpu_count();
