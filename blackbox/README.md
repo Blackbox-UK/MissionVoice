@@ -21,7 +21,7 @@ point.
 
 | ID | Change | Why | Status |
 |---|---|---|---|
-| MV-FS-001 | `src/switch_rtp.c`: DTLS-SRTP negotiates `SRTP_AEAD_AES_256_GCM` (and AES-128-GCM, AES-128-CM as fallbacks), reads the selected profile, sizes keys from it, reports it in `rtp_has_crypto` and `CALL_SECURE`; channel variable `rtp_dtls_srtp_profiles` narrows the offer. Upstream hard-wires AES-128-CM/HMAC-SHA1-80. | D05, D49: AES-256 and SHA-2 on every leg; `mvc-key-management.md` section 2. | Written; **not yet built** (A14: build against the Spiral 1 pin). |
+| MV-FS-001 | `src/switch_rtp.c`: DTLS-SRTP negotiates `SRTP_AEAD_AES_256_GCM` (and AES-128-GCM, AES-128-CM as fallbacks), reads the selected profile, sizes keys from it, reports it in `rtp_has_crypto` and `CALL_SECURE`; channel variable `rtp_dtls_srtp_profiles` narrows the offer. Upstream hard-wires AES-128-CM/HMAC-SHA1-80. | D05, D49: AES-256 and SHA-2 on every leg; `mvc-key-management.md` section 2. | Written; **not yet built** (A16: first `blackbox/build.sh` run on the MVC host). |
 | MV-FS-002 | `build/modules.conf.missionvoice`: the module set. Twelve modules; `mod_signalwire`, `mod_enum`, `mod_httapi`, CDR modules, scripting and every codec but Opus are not built. | D46: no beacons (`mod_signalwire` connects to SignalWire's cloud); attack surface. | Written. |
 | MV-FS-003 | `conf/missionvoice/`: the configuration tree. One SIP profile, TLS 1.3 only, mutual TLS, no clear-text listener, SRTP AEAD only, Opus CBR without DTX, ESL on loopback, no core dumps, no debug logging, directory and dialplan from the controller, static fallback that refuses everything. | E2EE analysis F3, F7, F8, section 1a; P25; D48. | Written. |
 | MV-FS-004 | `blackbox/build.sh` and `blackbox/openssl-missionvoice.cnf`: reproducible build passing `--enable-openssl` through to the bundled libsrtp (without it there is no AES-GCM at all and SRTP is not on the OpenSSL provider), and the OpenSSL configuration the FreeSWITCH process runs under (TLS 1.3 suites and groups pinned; FIPS and TPM providers switched on when present). | E2EE analysis F2, F4. | Written; build to be run on the MVC host. |
@@ -34,9 +34,10 @@ to the key-blind relay, so `mod_conference` is interim.
 
 ## Upstream pin
 
-The pinned upstream commit is recorded in `blackbox/UPSTREAM_PIN` and must
-match what the Spiral 1 MVC was built from (A14). Until A14 is done the
-file holds the commit this branch was cut from and says so.
+The pinned upstream commit is recorded in `blackbox/UPSTREAM_PIN`: the
+commit this branch was cut from, and the authoritative S1 build pin (D102,
+A16). There is no earlier Mission Voice build to inherit a pin from. Moving
+the pin is a reviewed change with a rebase of the MV-FS-* patches.
 
 ## Building
 

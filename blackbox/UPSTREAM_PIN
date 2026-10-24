@@ -1,2 +1,5 @@
 12ac48ab9e692d645b91b83bab89a85abdc3af53
-# Cut from the above upstream commit on 23 Oct 2026. A14: replace with the Spiral 1 build pin when identified.
+# Upstream signalwire/freeswitch commit the blackbox branch is cut from (23 Oct 2026).
+# Authoritative S1 build pin (D102, A16): there is no earlier Mission Voice build to
+# inherit a pin from. Build evidence (modules, configure flags, OpenSSL) is the
+# BUILD_RECORD written by blackbox/build.sh on the MVC host.
