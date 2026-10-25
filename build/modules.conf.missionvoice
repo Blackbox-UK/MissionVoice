@@ -1,4 +1,4 @@
-## NOTE: FreeSWITCH reads this file with grep: a line with a single # is a DISABLED MODULE, only ## is a comment, and nothing may follow a module name on its line.
+## NOTE: FreeSWITCH reads this file with grep: a single # is a DISABLED MODULE, only ## is a comment, nothing may follow a module name on its line, and no comment may END with a module name.
 ## Mission Voice MVC module set (MV-FS-002). Everything not listed is not built.
 ## Rationale per line; see blackbox/README.md. Changes go through the decision register.
 ## fs_cli / ESL commands used by the controller
@@ -11,7 +11,7 @@ applications/mod_conference
 codecs/mod_opus
 ## core database in PostgreSQL so registrations are shared across the hot pair (D95)
 databases/mod_pgsql
-## dialplan supplied by the controller through mod_xml_curl
+## dialplan supplied by the controller through the xml_curl module (never end a comment with a module name: the Makefile greps for it)
 dialplans/mod_dialplan_xml
 ## SIP over TLS 1.3, SRTP; the only endpoint module
 endpoints/mod_sofia

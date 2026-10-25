@@ -38,7 +38,9 @@
     <param name="dtmf-type" value="none"/>
     <param name="inbound-late-negotiation" value="false"/>
     <param name="inbound-zrtp-passthru" value="false"/>
-    <param name="apply-inbound-acl" value="missionvoice"/>
+    <!-- No apply-inbound-acl: an ACL match makes sofia skip digest authentication on INVITE and the
+         controller would see only an unverified From user (found 25 Oct). Every INVITE is challenged
+         (auth-calls); the register ACL still limits who may even try. -->
     <param name="apply-register-acl" value="missionvoice"/>
     <!-- No NAT handling of any kind: every endpoint is inside the VPN network (D94). ext-sip-ip and
          ext-rtp-ip are deliberately absent (they are NAT parameters; sofia also rejects loopback values). -->
