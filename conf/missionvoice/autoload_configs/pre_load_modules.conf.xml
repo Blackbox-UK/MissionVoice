@@ -1,0 +1,7 @@
+<configuration name="pre_load_modules.conf" description="Modules the core needs before its database opens">
+  <modules>
+    <!-- core-db-dsn is pgsql (switch.conf.xml, D95: one database shared by the hot pair); the driver must be
+         loaded before the core opens it. mvc-install removes this file and the dsn for a sqlite bench. -->
+    <load module="mod_pgsql"/>
+  </modules>
+</configuration>

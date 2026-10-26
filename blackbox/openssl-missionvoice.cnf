@@ -1,0 +1,41 @@
+# OpenSSL configuration for the FreeSWITCH process on an MVC (MV-FS-004).
+# Loaded by setting OPENSSL_CONF=/opt/missionvoice/freeswitch/etc/freeswitch/openssl.cnf in the systemd unit.
+# One file carries the algorithm profile (mvc-key-management.md section 2) so that nothing depends on
+# sofia-sip or FreeSWITCH exposing a TLS 1.3 knob.
+openssl_conf = mv_openssl
+
+[mv_openssl]
+ssl_conf = mv_ssl
+providers = mv_providers
+
+[mv_ssl]
+system_default = mv_tls_defaults
+
+[mv_tls_defaults]
+MinProtocol = TLSv1.3
+MaxProtocol = TLSv1.3
+Ciphersuites = TLS_AES_256_GCM_SHA384
+Groups = secp384r1
+# P28 step 3, when the platform has it (OpenSSL 3.5 on Ubuntu 26.04): Groups = SecP384r1MLKEM1024:secp384r1
+SignatureAlgorithms = ECDSA+SHA384
+Options = ServerPreference,PrioritizeChaCha:-SessionTicket
+
+[mv_providers]
+default = mv_default_provider
+# Enable on an Ubuntu Pro FIPS host (A01) and on a host with the TPM provider installed (F4):
+# fips = mv_fips_provider
+# tpm2 = mv_tpm2_provider
+base = mv_base_provider
+
+[mv_default_provider]
+activate = 1
+
+[mv_base_provider]
+activate = 1
+
+[mv_fips_provider]
+activate = 1
+
+[mv_tpm2_provider]
+activate = 1
+module = /usr/lib/x86_64-linux-gnu/ossl-modules/tpm2.so

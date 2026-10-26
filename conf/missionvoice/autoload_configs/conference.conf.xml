@@ -1,0 +1,17 @@
+<configuration name="conference.conf" description="Audio Conference">
+  <!-- G1 interim only. The S1 team conference and gateway legs; replaced by the relay (P33). -->
+  <profiles>
+    <profile name="missionvoice">
+      <param name="rate" value="16000"/>
+      <param name="interval" value="20"/>
+      <param name="energy-level" value="0"/>
+      <param name="comfort-noise" value="false"/>
+      <param name="auto-record" value=""/>          <!-- never; recording is the recorder participant's (D78) -->
+      <param name="caller-controls" value="none"/>  <!-- no DTMF menus -->
+      <param name="moderator-controls" value="none"/>
+      <!-- No conference-flags: there is no moderator concept. Every leg joins muted (dialplan flags{mute})
+           and only the controller unmutes the floor holder (P36). -->
+      <param name="announce-count" value="0"/>
+    </profile>
+  </profiles>
+</configuration>

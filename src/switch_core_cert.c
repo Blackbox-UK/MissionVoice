@@ -378,11 +378,21 @@ SWITCH_DECLARE(switch_bool_t) switch_core_check_dtls_pem(const char *file)
 	}
 
 	bits = EVP_PKEY_bits(pkey);
-	EVP_PKEY_free(pkey);
 
-	if (bits < 4096) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "%s cryptographic length is too short (%d), it will be regenerated\n", pem, bits);
-		goto rename_pem;
+	/* MV-FS-006 (Mission Voice): upstream applied an RSA-only rule (bits < 4096 => regenerate), which
+	   rejects every EC key: a P-384 key reports 384 bits. Judge by key type. An unacceptable key is
+	   reported and left in place; it is never renamed aside and never replaced by a generated one. */
+	{
+		int key_id = EVP_PKEY_base_id(pkey);
+		int min_bits = (key_id == EVP_PKEY_EC) ? 256 : 3072;
+		EVP_PKEY_free(pkey);
+		if (bits < min_bits) {
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CRIT,
+							  "%s key is too short (%d bits, %s); install a device certificate with an EC P-384 key (MV-FS-006)\n",
+							  pem, bits, key_id == EVP_PKEY_EC ? "EC" : "RSA/other");
+			switch_safe_free(pem);
+			return SWITCH_FALSE;
+		}
 	}
 
 	switch_safe_free(pem);
@@ -390,16 +400,9 @@ SWITCH_DECLARE(switch_bool_t) switch_core_check_dtls_pem(const char *file)
 	return SWITCH_TRUE;
 
 rename_pem:
-
-	old_pem = switch_mprintf("%s.old", pem);
-
-	if (rename(pem, old_pem) != -1) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Renamed %s to %s\n", pem, old_pem);
-	} else {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Could not rename %s: %s\n", pem, strerror(errno));
-	}
-
-	switch_safe_free(old_pem);
+	/* MV-FS-006: never move an operator-installed certificate aside. Report and refuse. */
+	(void)old_pem;
+	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CRIT, "%s is unusable and will not be replaced (MV-FS-006)\n", pem);
 	switch_safe_free(pem);
 
 	return SWITCH_FALSE;

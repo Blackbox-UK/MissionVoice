@@ -1,0 +1,11 @@
+<configuration name="opus.conf" description="Opus">
+  <settings>
+    <param name="use-vbr" value="0"/>        <!-- constant bit rate: packet size reveals nothing about speech (E2EE analysis, section 5 table) -->
+    <param name="use-dtx" value="0"/>        <!-- no DTX: constant packet rate, same reason -->
+    <param name="complexity" value="5"/>
+    <param name="maxaveragebitrate" value="32000"/>
+    <param name="maxplaybackrate" value="16000"/>
+    <param name="sprop-maxcapturerate" value="16000"/>
+    <param name="keep-fec-enabled" value="1"/>
+  </settings>
+</configuration>

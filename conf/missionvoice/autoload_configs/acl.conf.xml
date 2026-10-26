@@ -1,0 +1,12 @@
+<configuration name="acl.conf" description="Network Lists">
+  <network-lists>
+    <!-- The VPN network's inside subnet (D94). Set by the installer. Nothing else may register or call. -->
+    <list name="missionvoice" default="deny">
+      <node type="allow" cidr="__MVC_VPN_SUBNET__"/>
+    </list>
+    <list name="loopback.auto" default="deny">
+      <node type="allow" cidr="127.0.0.0/8"/>
+      <node type="allow" cidr="::1/128"/>
+    </list>
+  </network-lists>
+</configuration>

@@ -1,0 +1,3 @@
+<include>
+  <!-- No static users. Every registration is decided by the controller (mod_xml_curl). -->
+</include>

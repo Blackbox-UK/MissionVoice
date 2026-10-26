@@ -299,6 +299,7 @@ typedef struct switch_dtls_s {
 	/* How FreeSWITCH, as the DTLS server, verifies the client certificate (from the rtp_dtls_client_cert_verify_mode
 	 * channel variable). Server-only; the client role ignores it. */
 	dtls_client_cert_verify_t client_cert_verify;
+	const struct mv_dtls_srtp_profile_s *mv_profile;   /* negotiated DTLS-SRTP profile, set in dtls_state_setup() */
 } switch_dtls_t;
 
 typedef int (*dtls_state_handler_t)(switch_rtp_t *, switch_dtls_t *);
@@ -3287,9 +3288,46 @@ static const char *dtls_state_names(dtls_state_t s)
 
 #define dtls_set_state(_dtls, _state) switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(rtp_session->session), SWITCH_LOG_INFO, "Changing %s DTLS state from %s to %s\n", rtp_type(rtp_session), dtls_state_names(_dtls->state), dtls_state_names(_state)); _dtls->new_state = 1; _dtls->last_state = _dtls->state; _dtls->state = _state
 
-#define cr_keylen 16
-#define cr_saltlen 14
-#define cr_kslen 30
+/* Mission Voice: DTLS-SRTP profile is negotiated, not fixed (MV-FS-001).
+ * Buffers are sized for the largest profile we offer (AEAD_AES_256_GCM: 32-byte key, 12-byte salt). */
+#define cr_kslen_max 44
+
+typedef struct mv_dtls_srtp_profile_s {
+	const char *openssl_name;             /* name OpenSSL reports from SSL_get_selected_srtp_profile() */
+	switch_rtp_crypto_key_type_t type;    /* FreeSWITCH crypto type for switch_rtp_add_crypto_key() */
+	const char *fs_name;                  /* string for rtp_has_crypto / CALL_SECURE */
+	size_t keylen;
+	size_t saltlen;
+} mv_dtls_srtp_profile_t;
+
+static const mv_dtls_srtp_profile_t mv_dtls_srtp_profiles[] = {
+	{ "SRTP_AEAD_AES_256_GCM", AEAD_AES_256_GCM,        "AEAD_AES_256_GCM",        32, 12 },
+	{ "SRTP_AEAD_AES_128_GCM", AEAD_AES_128_GCM,        "AEAD_AES_128_GCM",        16, 12 },
+	{ "SRTP_AES128_CM_SHA1_80", AES_CM_128_HMAC_SHA1_80, "AES_CM_128_HMAC_SHA1_80", 16, 14 },
+	{ NULL, 0, NULL, 0, 0 }
+};
+
+/* The profiles offered to the peer, strongest first. Overridable per channel with rtp_dtls_srtp_profiles. */
+#define MV_DTLS_SRTP_PROFILES_DEFAULT "SRTP_AEAD_AES_256_GCM:SRTP_AEAD_AES_128_GCM:SRTP_AES128_CM_SHA1_80"
+
+static const mv_dtls_srtp_profile_t *mv_dtls_selected_profile(SSL *ssl)
+{
+#ifdef HAVE_OPENSSL_DTLS_SRTP
+	const SRTP_PROTECTION_PROFILE *sp = SSL_get_selected_srtp_profile(ssl);
+	const mv_dtls_srtp_profile_t *p;
+
+	if (!sp || !sp->name) {
+		return NULL;
+	}
+
+	for (p = mv_dtls_srtp_profiles; p->openssl_name; p++) {
+		if (!strcmp(p->openssl_name, sp->name)) {
+			return p;
+		}
+	}
+#endif
+	return NULL;
+}
 
 static int dtls_state_setup(switch_rtp_t *rtp_session, switch_dtls_t *dtls)
 {
@@ -3298,14 +3336,12 @@ static int dtls_state_setup(switch_rtp_t *rtp_session, switch_dtls_t *dtls)
 	int r = 0;
 	int peer_cert_present = 0;
 
-	uint8_t raw_key_data[cr_kslen * 2];
-	unsigned char local_key_buf[cr_kslen];
-	unsigned char remote_key_buf[cr_kslen];
+	uint8_t raw_key_data[cr_kslen_max * 2];
+	const mv_dtls_srtp_profile_t *prof = NULL;
+	size_t cr_keylen = 0, cr_saltlen = 0, cr_kslen = 0;
 
 	memset(&ssec, 0, sizeof(ssec));
-	memset(&raw_key_data, 0, cr_kslen * 2 * sizeof(uint8_t));
-	memset(&local_key_buf, 0, cr_kslen * sizeof(unsigned char));
-	memset(&remote_key_buf, 0, cr_kslen * sizeof(unsigned char));
+	memset(&raw_key_data, 0, sizeof(raw_key_data));
 
 	if (dtls->client_cert_verify == DTLS_CLIENT_CERT_VERIFY_NONE && (dtls->type & DTLS_TYPE_SERVER)) {
 		r = 1;
@@ -3334,8 +3370,18 @@ static int dtls_state_setup(switch_rtp_t *rtp_session, switch_dtls_t *dtls)
 
 		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(rtp_session->session), SWITCH_LOG_INFO, "%s Fingerprint Verified.\n", rtp_type(rtp_session));
 
+		if (!(prof = mv_dtls_selected_profile(dtls->ssl))) {
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(rtp_session->session), SWITCH_LOG_ERROR, "%s No acceptable DTLS-SRTP profile negotiated\n", rtp_type(rtp_session));
+			dtls_set_state(dtls, DS_FAIL);
+			return -1;
+		}
+		cr_keylen = prof->keylen;
+		cr_saltlen = prof->saltlen;
+		cr_kslen = cr_keylen + cr_saltlen;
+		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(rtp_session->session), SWITCH_LOG_INFO, "%s DTLS-SRTP profile %s\n", rtp_type(rtp_session), prof->fs_name);
+
 #ifdef HAVE_OPENSSL_DTLS_SRTP
-		if (!SSL_export_keying_material(dtls->ssl, raw_key_data, sizeof(raw_key_data), "EXTRACTOR-dtls_srtp", 19, NULL, 0, 0)) {
+		if (!SSL_export_keying_material(dtls->ssl, raw_key_data, cr_kslen * 2, "EXTRACTOR-dtls_srtp", 19, NULL, 0, 0)) {
 			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(rtp_session->session), SWITCH_LOG_ERROR, "%s Key material export failure\n", rtp_type(rtp_session));
 			dtls_set_state(dtls, DS_FAIL);
 			return -1;
@@ -3363,7 +3409,8 @@ static int dtls_state_setup(switch_rtp_t *rtp_session, switch_dtls_t *dtls)
 		memcpy(ssec.remote_raw_key, remote_key, cr_keylen);
 		memcpy(ssec.remote_raw_key + cr_keylen, remote_salt, cr_saltlen);
 
-		ssec.crypto_type = AES_CM_128_HMAC_SHA1_80;
+		ssec.crypto_type = prof->type;
+		dtls->mv_profile = prof;
 
 		if (dtls == rtp_session->rtcp_dtls && rtp_session->rtcp_dtls != rtp_session->dtls) {
 			switch_rtp_add_crypto_key(rtp_session, SWITCH_RTP_CRYPTO_SEND_RTCP, 0, &ssec);
@@ -4008,8 +4055,20 @@ SWITCH_DECLARE(switch_status_t) switch_rtp_add_dtls(switch_rtp_t *rtp_session, d
 	//SSL_CTX_set_cipher_list(dtls->ssl_ctx, "SUITEB128");
 	SSL_CTX_set_read_ahead(dtls->ssl_ctx, 1);
 #ifdef HAVE_OPENSSL_DTLS_SRTP
-	//SSL_CTX_set_tlsext_use_srtp(dtls->ssl_ctx, "SRTP_AES128_CM_SHA1_80:SRTP_AES128_CM_SHA1_32");
-	SSL_CTX_set_tlsext_use_srtp(dtls->ssl_ctx, "SRTP_AES128_CM_SHA1_80");
+	{
+		/* Mission Voice: offer AEAD profiles first; a channel may narrow the list with rtp_dtls_srtp_profiles
+		 * (for example "SRTP_AEAD_AES_256_GCM" alone under the Mission Voice profile). */
+		const char *profiles = MV_DTLS_SRTP_PROFILES_DEFAULT;
+		if (rtp_session->session) {
+			const char *var = switch_channel_get_variable(switch_core_session_get_channel(rtp_session->session), "rtp_dtls_srtp_profiles");
+			if (!zstr(var)) {
+				profiles = var;
+			}
+		}
+		if (SSL_CTX_set_tlsext_use_srtp(dtls->ssl_ctx, profiles) != 0) {
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(rtp_session->session), SWITCH_LOG_ERROR, "%s Invalid DTLS-SRTP profile list '%s'\n", rtp_type(rtp_session), profiles);
+		}
+	}
 #endif
 
 	dtls->type = type;
@@ -4497,8 +4556,9 @@ SWITCH_DECLARE(switch_status_t) switch_rtp_add_crypto_key(switch_rtp_t *rtp_sess
 
 	if (switch_event_create(&fsevent, SWITCH_EVENT_CALL_SECURE) == SWITCH_STATUS_SUCCESS) {
 		if (rtp_session->dtls) {
-			switch_event_add_header(fsevent, SWITCH_STACK_BOTTOM, "secure_type", "srtp:dtls:AES_CM_128_HMAC_SHA1_80");
-			switch_channel_set_variable(channel, "rtp_has_crypto", "srtp:dtls:AES_CM_128_HMAC_SHA1_80");
+			const char *pname = (rtp_session->dtls->mv_profile ? rtp_session->dtls->mv_profile->fs_name : "AES_CM_128_HMAC_SHA1_80");
+			switch_event_add_header(fsevent, SWITCH_STACK_BOTTOM, "secure_type", "srtp:dtls:%s", pname);
+			switch_channel_set_variable_printf(channel, "rtp_has_crypto", "srtp:dtls:%s", pname);
 		} else {
 			switch_event_add_header(fsevent, SWITCH_STACK_BOTTOM, "secure_type", "srtp:sdes:%s", switch_channel_get_variable(channel, "rtp_has_crypto"));
 		}

@@ -1,0 +1,57 @@
+<!-- The one and only SIP profile (E2EE analysis, section 1a: no external profile, no trunk to a provider).
+     Inter-ROC trunks (D84) are added as gateways under this profile in S5, mutually authenticated. -->
+<profile name="missionvoice">
+  <settings>
+    <param name="context" value="missionvoice"/>
+    <param name="sip-ip" value="$${mvc_sip_ip}"/>
+    <param name="rtp-ip" value="$${mvc_sip_ip}"/>
+    <param name="sip-port" value="0"/>                 <!-- no clear-text SIP listener at all -->
+    <param name="tls" value="true"/>
+    <param name="tls-only" value="true"/>
+    <param name="tls-sip-port" value="$${mvc_tls_port}"/>
+    <param name="tls-version" value="tlsv1.3"/>
+    <param name="tls-ciphers" value="$${mvc_tls_ciphers}"/>
+    <!-- certs_dir is <conf>/tls unless freeswitch is started with -certs; the service unit passes
+         -certs /etc/missionvoice/tls. Files: agent.pem (device cert+key, TSS2 key in S2), cafile.pem
+         (issuing CA), dtls-srtp.pem (same device cert; EC P-384; MV-FS-006 never generates one). -->
+    <param name="tls-cert-dir" value="$${certs_dir}"/>
+    <param name="tls-verify-policy" value="all"/>      <!-- mutual TLS: every terminal presents its device certificate (S2) -->
+    <param name="tls-verify-depth" value="2"/>
+    <param name="tls-verify-date" value="true"/>
+    <param name="tls-bind-params" value="transport=tls"/>
+    <!-- Registration: digest SHA-256 only (P15) until certificates bind identity (F3 patch 2). -->
+    <param name="auth-calls" value="true"/>
+    <param name="auth-all-packets" value="true"/>
+    <param name="challenge-realm" value="auto_to"/>
+    <param name="disable-register" value="false"/>
+    <param name="accept-blind-reg" value="false"/>
+    <param name="accept-blind-auth" value="false"/>
+    <param name="nonce-ttl" value="60"/>
+    <param name="inbound-reg-force-matching-username" value="true"/>
+    <!-- Media: SRTP mandatory, AEAD only; DTLS-SRTP with full client-certificate verification (F1, F5). -->
+    <param name="inbound-codec-prefs" value="$${mvc_codec_prefs}"/>
+    <param name="outbound-codec-prefs" value="$${mvc_codec_prefs}"/>
+    <param name="inbound-codec-negotiation" value="greedy"/>
+    <param name="rtp-timer-name" value="soft"/>
+    <!-- rtp-timeout-sec / rtp-hold-timeout-sec are deprecated (warned at load): the controller sets the
+         media_timeout / media_hold_timeout channel variables on every leg instead. -->
+    <param name="dtmf-type" value="none"/>
+    <param name="inbound-late-negotiation" value="false"/>
+    <param name="inbound-zrtp-passthru" value="false"/>
+    <!-- No apply-inbound-acl: an ACL match makes sofia skip digest authentication on INVITE and the
+         controller would see only an unverified From user (found 25 Oct). Every INVITE is challenged
+         (auth-calls); the register ACL still limits who may even try. -->
+    <param name="apply-register-acl" value="missionvoice"/>
+    <!-- No NAT handling of any kind: every endpoint is inside the VPN network (D94). ext-sip-ip and
+         ext-rtp-ip are deliberately absent (they are NAT parameters; sofia also rejects loopback values). -->
+    <param name="aggressive-nat-detection" value="false"/>
+    <param name="NDLB-force-rport" value="false"/>
+    <param name="enable-100rel" value="true"/>
+    <param name="enable-timer" value="true"/>
+    <param name="session-timeout" value="120"/>
+    <param name="minimum-session-expires" value="90"/>
+    <param name="manage-presence" value="false"/>
+    <param name="presence-privacy" value="true"/>
+    <param name="watchdog-enabled" value="false"/>
+  </settings>
+</profile>
